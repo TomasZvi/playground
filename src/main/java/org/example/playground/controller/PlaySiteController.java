@@ -7,7 +7,8 @@ import org.example.playground.model.PlaySite;
 import org.example.playground.service.SiteService;
 import org.springframework.web.bind.annotation.*;
 
-@RestController( "/playSites")
+@RestController
+@RequestMapping("/playSites")
 @RequiredArgsConstructor
 public class PlaySiteController {
 
@@ -22,7 +23,7 @@ public class PlaySiteController {
     }
 
     @GetMapping( "/{id}")
-    public PlaySite getPlaySite(@PathVariable int id) {
+    public PlaySite getPlaySite(@PathVariable Long id) {
         return siteService.getPlaySite(id);
     }
 
@@ -32,7 +33,7 @@ public class PlaySiteController {
     }
 
     @DeleteMapping( "/{id}")
-    public void deletePlaySite(@PathVariable int id) {
+    public void deletePlaySite(@PathVariable Long id) {
         siteService.deletePlaySite(id);
     }
 

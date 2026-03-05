@@ -11,8 +11,8 @@ public class KidService {
 
     private final KidRepository kidRepository;
 
-    public Kid getKid(int id) {
-        return kidRepository.findById(id);
+    public Kid getKid(Long id) {
+        return kidRepository.findById(id).orElse(null);
     }
 
     public Kid createKid(Kid kid) {
@@ -20,10 +20,10 @@ public class KidService {
     }
 
     public Kid updateKid(Kid updatedKid) {
-        return kidRepository.update(updatedKid);
+        return kidRepository.save(updatedKid);
     }
 
-    public void deleteKidById(int id) {
+    public void deleteKidById(Long id) {
         kidRepository.deleteById(id);
     }
 }

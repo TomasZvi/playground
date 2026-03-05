@@ -5,7 +5,8 @@ import org.example.playground.model.Kid;
 import org.example.playground.service.KidService;
 import org.springframework.web.bind.annotation.*;
 
-@RestController("/kids")
+@RestController
+@RequestMapping("/kids")
 @RequiredArgsConstructor
 public class KidController {
 
@@ -17,7 +18,7 @@ public class KidController {
     }
 
     @GetMapping( "/{id}")
-    public Kid getKid(@PathVariable int id) {
+    public Kid getKid(@PathVariable Long id) {
         return kidService.getKid(id);
     }
 
@@ -27,7 +28,7 @@ public class KidController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteKid(@PathVariable int id) {
+    public void deleteKid(@PathVariable Long id) {
         kidService.deleteKidById(id);
     }
 

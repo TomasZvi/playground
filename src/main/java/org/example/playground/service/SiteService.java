@@ -20,15 +20,15 @@ public class SiteService {
         return playSiteRepository.save(playSite);
     }
 
-    public PlaySite getPlaySite(int id) {
-        return playSiteRepository.findById(id);
+    public PlaySite getPlaySite(Long id) {
+        return playSiteRepository.findById(id).orElse(null);
     }
 
     public PlaySite updatePlaySite(PlaySite playSite) {
-        return playSiteRepository.update(playSite);
+        return playSiteRepository.save(playSite);
     }
 
-    public void deletePlaySite(int id) {
+    public void deletePlaySite(Long id) {
         playSiteRepository.deleteById(id);
     }
 }
