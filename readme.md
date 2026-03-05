@@ -1,22 +1,42 @@
 # Playgrounds
 
-## Task description
+## Task Description
+
 Create a playground REST API (use Spring Boot).
-These are things that we expect library will do:
-- define clear and usable domain classes, services, repository, controllers that should be used access required functionality and data
-- API creates and manages play sites in playground. Play sites consists of attractions such as double swings, carousel, slide and a ball pit. 
-  API allows to create different play sites with different combinations of attractions (for example API should enable one to add play site that consists of two swings, one slide and three ball pits and etc.)
-- Attractions has maximum capacity like swings can have two kids maximum capacity
-- API should expose endpoint that creates playsite with initial set of attractions, endpoint to edit playsite, get playsite info, delete playsite.
-- API should expose endpoint that allows to add kid to particular playsite (we know kid's name, age, ticket number). Kids ticket number identifies kid uniquely. Api also should have endpoint to remove kid from playsite.
-- API should not allow to add more kids to them than specified in configuration of play site (sum of all attractions capacity).
-- API should automatically enqueue kid if playsite is full or receive negative result if kid does not accept waiting in queue. Or move waiting kid from queue to playsite if kid other was removed from playsite API register queues on play sites when tries to add kid to play site, that is full, and kid accepts waiting in queue).
-- it should also be possible to remove kid from play site / queue
-- API should provide play site utilization at current moment. Utilization is measured in %
-- API should be able to provide a total visitor count during a current day on all play sites on the moment of request.
-- It is not required to use DB or persistent data store, In-memory storage is enough.
-  Please do not over-engineer, keep code simple and easy understandable.
-  Create API as it would be used by playground manager from his usability perspective.
-  If requirement or functionality is not clearly described please feel free implement it as you think would be logical. For example, “or receive negative result if kid does not accept waiting in queue “ does not say how kid decides to not accept waiting so it is for you to decide the rule let’s say 50/50 or some random. Similarly play site utilization calculation logic when play site has double swing together with other devices is up to you to decide.
-  For sake of simplicity do not take into account synchronization of possible parallel data access/modification.
-  Preferred shipment of homework is Github (or similar).
+
+### Expectations
+
+We expect the library/application to:
+
+- Define clear and usable domain classes, services, repositories, and controllers that provide access to the required functionality and data.
+- Create and manage **play sites** in a playground. A play site consists of attractions such as double swings, carousel, slide, ball pit, etc.
+- Allow creating different play sites with different combinations of attractions (for example, a play site with two swings, one slide, and three ball pits, etc.).
+- Define attraction capacities (e.g., a double swing can have a maximum of two kids).
+- Expose endpoints to:
+  - Create a play site with an initial set of attractions
+  - Edit a play site
+  - Get play site information
+  - Delete a play site
+- Expose endpoints to manage kids on a play site:
+  - Add a kid to a particular play site (kid details: name, age, ticket number)
+  - Remove a kid from a play site
+  - Kid’s ticket number uniquely identifies the kid
+- Don't allow more kids in a play site than the play site capacity (the total capacity is the sum of all attraction capacities).
+- When adding kid to a full play site:
+  - Automatically enqueue the kid **if** the kid accepts waiting in the queue, **or**
+  - Return a negative result if the kid does not accept waiting
+  - When kid is removed from play site, move kids from the queue into the play site as space becomes available
+- Make it possible to remove kid from play site **or** from the queue.
+- Provide the current play site utilization. Utilization is measured as a percentage (%).
+- Provide the total visitor count for the current day across all play sites at the moment of the request.
+- Use in-memory storage only (a database or persistent data store is **not** required).
+
+### Notes
+
+- Please do not overengineer this; keep the code simple and easy to understand.
+- Design the API as it would be used by a playground manager, focusing on usability.
+- If a requirement or behavior is unclear, implement what you think is most logical.
+  - For example, the requirement “return a negative result if the kid does not accept waiting in the queue” does not specify how the kid decides. You may choose a rule (e.g., random 50/50).
+  - Similarly, utilization calculation logic for combinations like a double swing together with other attractions is up to you.
+- For simplicity, do not account for synchronization/parallel access.
+- Preferred submission is GitHub (or a similar service).
