@@ -7,7 +7,7 @@ import org.example.playground.model.PlaySite;
 import org.example.playground.service.SiteService;
 import org.springframework.web.bind.annotation.*;
 
-@RestController( "/playSite")
+@RestController( "/playSites")
 @RequiredArgsConstructor
 public class PlaySiteController {
 
@@ -21,8 +21,8 @@ public class PlaySiteController {
         return siteService.createPlaySite(playSite);
     }
 
-    @GetMapping
-    public PlaySite getPlaySite(int id) {
+    @GetMapping( "/{id}")
+    public PlaySite getPlaySite(@PathVariable int id) {
         return siteService.getPlaySite(id);
     }
 
@@ -31,8 +31,8 @@ public class PlaySiteController {
         return siteService.updatePlaySite(playSite);
     }
 
-    @DeleteMapping
-    public void deletePlaySite(int id) {
+    @DeleteMapping( "/{id}")
+    public void deletePlaySite(@PathVariable int id) {
         siteService.deletePlaySite(id);
     }
 
