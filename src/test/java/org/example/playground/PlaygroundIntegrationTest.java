@@ -181,4 +181,43 @@ public class PlaygroundIntegrationTest {
         assertThat(finalSiteStatus.getKidsOnSite().getFirst().getId()).isEqualTo(kid2.getId());
         assertThat(finalSiteStatus.getKidsQueue()).isEmpty();
     }
+
+    @Test
+    public void testUtilization() throws Exception {
+        // 1. Create a PlaySite with capacity 10 (Ball Pit)
+        AttractionConfiguration attraction = AttractionConfiguration.builder()
+                .attractionType(AttractionType.BALL_PIT) // capacity 10
+                .quantity(1)
+                .build();
+        PlaySite site = PlaySite.builder()
+                .attractions(Collections.singletonList(attraction))
+                .build();
+
+        MvcResult siteResult = mockMvc.perform(post("/playSites")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(site)))
+                .andExpect(status().isOk())
+                .andReturn();
+        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+
+        // 2. Check initial utilization (should be 0.0)
+        mockMvc.perform(get("/playSites/" + createdSite.getId() + "/utilization"))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("0.0"));
+
+        // 3. Add 5 kids
+        for (int i = 0; i < 5; i++) {
+            Kid kid = Kid.builder().name("Kid " + i).ticketNumber("TU" + i).build();
+            MvcResult kidResult = mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(kid)))
+                    .andExpect(status().isOk()).andReturn();
+            kid = objectMapper.readValue(kidResult.getResponse().getContentAsString(), Kid.class);
+            mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid.getId()))
+                    .andExpect(status().isOk());
+        }
+
+        // 4. Check utilization (should be 50.0)
+        mockMvc.perform(get("/playSites/" + createdSite.getId() + "/utilization"))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("50.0"));
+    }
 }

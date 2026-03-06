@@ -14,6 +14,7 @@ public class KidsSiteActionsService {
 
     private final PlaySiteRepository playSiteRepository;
     private final KidRepository kidRepository;
+    private final SiteService siteService;
 
     @Transactional
     public void addKidToPlaySite(Long siteId, Long kidId) {
@@ -25,7 +26,7 @@ public class KidsSiteActionsService {
             return;
         }
 
-        if (site.hasFreeSpace()) {
+        if (siteService.hasFreeSpace(site)) {
             site.getKidsOnSite().add(kid);
         } else if (kid.isAcceptWaiting()) {
             site.getKidsQueue().add(kid);
@@ -41,7 +42,7 @@ public class KidsSiteActionsService {
         site.getKidsOnSite().removeIf(k -> k.getId().equals(kidId));
         site.getKidsQueue().removeIf(k -> k.getId().equals(kidId));
 
-        while (!site.getKidsQueue().isEmpty() && site.hasFreeSpace()) {
+        while (!site.getKidsQueue().isEmpty() && siteService.hasFreeSpace(site)) {
             Kid kidFromQueue = site.getKidsQueue().removeFirst();
             site.getKidsOnSite().add(kidFromQueue);
         }

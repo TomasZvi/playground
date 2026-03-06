@@ -47,4 +47,9 @@ public class PlaySiteController {
         kidsSiteActionsService.removeKidFromPlaySite(siteId, kidId);
     }
 
+    @GetMapping("/{id}/utilization")
+    public double getUtilization(@PathVariable Long id) {
+        return siteService.getUtilization(id);
+    }
+
 }
