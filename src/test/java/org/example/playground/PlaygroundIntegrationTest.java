@@ -220,4 +220,65 @@ public class PlaygroundIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("50.0"));
     }
+
+    @Test
+    public void testQueueMovesWhenCapacityIncreases() throws Exception {
+        // 1. Create a PlaySite with capacity 1
+        AttractionConfiguration attraction1 = AttractionConfiguration.builder()
+                .attractionType(AttractionType.CAROUSEL) // capacity 1
+                .quantity(1)
+                .build();
+        PlaySite site = PlaySite.builder()
+                .attractions(Collections.singletonList(attraction1))
+                .build();
+
+        MvcResult siteResult = mockMvc.perform(post("/playSites")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(site)))
+                .andExpect(status().isOk())
+                .andReturn();
+        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+
+        // 2. Create 2 kids (accepting waiting)
+        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("TK1").acceptWaiting(true).build();
+        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("TK2").acceptWaiting(true).build();
+
+        MvcResult kid1Result = mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(kid1)))
+                .andExpect(status().isOk()).andReturn();
+        kid1 = objectMapper.readValue(kid1Result.getResponse().getContentAsString(), Kid.class);
+
+        MvcResult kid2Result = mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(kid2)))
+                .andExpect(status().isOk()).andReturn();
+        kid2 = objectMapper.readValue(kid2Result.getResponse().getContentAsString(), Kid.class);
+
+        // 3. Add kid 1 to site and kid 2 to queue
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getId())).andExpect(status().isOk());
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getId())).andExpect(status().isOk());
+
+        // Verify state
+        MvcResult midResult = mockMvc.perform(get("/playSites/" + createdSite.getId())).andExpect(status().isOk()).andReturn();
+        PlaySite midSite = objectMapper.readValue(midResult.getResponse().getContentAsString(), PlaySite.class);
+        assertThat(midSite.getKidsOnSite()).hasSize(1);
+        assertThat(midSite.getKidsQueue()).hasSize(1);
+
+        // 4. Increase capacity by adding another carousel
+        AttractionConfiguration attraction2 = AttractionConfiguration.builder()
+                .attractionType(AttractionType.CAROUSEL)
+                .quantity(1)
+                .build();
+        // We need to keep the original attraction ID if we want to update it, but here we're replacing the list.
+        // Actually, let's just update the quantity of the existing attraction.
+        midSite.getAttractions().getFirst().setQuantity(2);
+
+        mockMvc.perform(put("/playSites")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(midSite)))
+                .andExpect(status().isOk());
+
+        // 5. Verify kid 2 moved to site automatically
+        MvcResult finalResult = mockMvc.perform(get("/playSites/" + createdSite.getId())).andExpect(status().isOk()).andReturn();
+        PlaySite finalSite = objectMapper.readValue(finalResult.getResponse().getContentAsString(), PlaySite.class);
+        assertThat(finalSite.getKidsOnSite()).hasSize(2);
+        assertThat(finalSite.getKidsQueue()).isEmpty();
+    }
 }

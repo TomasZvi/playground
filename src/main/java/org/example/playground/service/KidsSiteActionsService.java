@@ -43,10 +43,7 @@ public class KidsSiteActionsService {
         site.getKidsOnSite().removeIf(k -> k.getId().equals(kidId));
         site.getKidsQueue().removeIf(k -> k.getId().equals(kidId));
 
-        while (!site.getKidsQueue().isEmpty() && PlaySiteUtils.hasFreeSpace(site)) {
-            Kid kidFromQueue = site.getKidsQueue().removeFirst();
-            site.getKidsOnSite().add(kidFromQueue);
-        }
+        siteService.processQueue(site);
 
         playSiteRepository.save(site);
     }

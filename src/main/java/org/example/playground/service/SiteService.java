@@ -1,6 +1,7 @@
 package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.PlaySiteRepository;
 import org.example.playground.utils.PlaySiteUtils;
@@ -26,7 +27,15 @@ public class SiteService {
     }
 
     public PlaySite updatePlaySite(PlaySite playSite) {
+        processQueue(playSite);
         return playSiteRepository.save(playSite);
+    }
+
+    public void processQueue(PlaySite site) {
+        while (!site.getKidsQueue().isEmpty() && PlaySiteUtils.hasFreeSpace(site)) {
+            Kid kidFromQueue = site.getKidsQueue().removeFirst();
+            site.getKidsOnSite().add(kidFromQueue);
+        }
     }
 
     public void deletePlaySite(Long id) {
