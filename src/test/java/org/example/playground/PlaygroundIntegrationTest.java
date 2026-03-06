@@ -4,6 +4,8 @@ import org.example.playground.model.AttractionConfiguration;
 import org.example.playground.model.AttractionType;
 import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
+import org.example.playground.persistence.KidRepository;
+import org.example.playground.persistence.PlaySiteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +34,17 @@ public class PlaygroundIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private KidRepository kidRepository;
+
+    @Autowired
+    private PlaySiteRepository playSiteRepository;
+
     @BeforeEach
     public void setup() {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(this.webApplicationContext).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        playSiteRepository.deleteAll();
+        kidRepository.deleteAll();
     }
 
     @Test
@@ -280,5 +290,20 @@ public class PlaygroundIntegrationTest {
         PlaySite finalSite = objectMapper.readValue(finalResult.getResponse().getContentAsString(), PlaySite.class);
         assertThat(finalSite.getKidsOnSite()).hasSize(2);
         assertThat(finalSite.getKidsQueue()).isEmpty();
+    }
+
+    @Test
+    public void testTicketNumberUniqueness() throws Exception {
+        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("UNIQUE_TICKET").build();
+        mockMvc.perform(post("/kids")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(kid1)))
+                .andExpect(status().isOk());
+
+        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("UNIQUE_TICKET").build();
+        mockMvc.perform(post("/kids")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(kid2)))
+                .andExpect(status().isBadRequest());
     }
 }

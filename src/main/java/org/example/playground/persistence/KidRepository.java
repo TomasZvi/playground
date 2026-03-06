@@ -9,4 +9,6 @@ public interface KidRepository extends JpaRepository<Kid, Long> {
 
     Kid findByTicketNumber(String ticketNumber);
 
+    Boolean existsByTicketNumber(String ticketNumber);
+
 }

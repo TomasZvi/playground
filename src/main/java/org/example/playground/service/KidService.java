@@ -16,10 +16,17 @@ public class KidService {
     }
 
     public Kid createKid(Kid kid) {
+        if (kidRepository.existsByTicketNumber(kid.getTicketNumber())) {
+            throw new RuntimeException("Ticket number already exists");
+        }
         return kidRepository.save(kid);
     }
 
     public Kid updateKid(Kid updatedKid) {
+        Kid existingKid = kidRepository.findByTicketNumber(updatedKid.getTicketNumber());
+        if (existingKid != null && !existingKid.getId().equals(updatedKid.getId())) {
+            throw new RuntimeException("Ticket number already exists");
+        }
         return kidRepository.save(updatedKid);
     }
 
