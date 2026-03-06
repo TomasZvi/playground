@@ -1,5 +1,6 @@
 package org.example.playground;
 
+import org.example.playground.dto.ErrorResponse;
 import org.example.playground.model.AttractionConfiguration;
 import org.example.playground.model.AttractionType;
 import org.example.playground.model.Kid;
@@ -301,9 +302,44 @@ public class PlaygroundIntegrationTest {
                 .andExpect(status().isOk());
 
         Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("UNIQUE_TICKET").build();
-        mockMvc.perform(post("/kids")
+        MvcResult result = mockMvc.perform(post("/kids")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(kid2)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        ErrorResponse error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
+        assertThat(error.getErrorMessage()).contains("Ticket number already exists");
+    }
+
+    @Test
+    public void testKidDoesNotAcceptWaiting() throws Exception {
+        // 1. Create a PlaySite with capacity 1
+        AttractionConfiguration attraction = AttractionConfiguration.builder()
+                .attractionType(AttractionType.CAROUSEL)
+                .quantity(1)
+                .build();
+        PlaySite site = PlaySite.builder().attractions(Collections.singletonList(attraction)).build();
+        MvcResult siteResult = mockMvc.perform(post("/playSites").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(site)))
+                .andExpect(status().isOk()).andReturn();
+        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+
+        // 2. Create 2 kids, kid2 does not accept waiting
+        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("T1").acceptWaiting(true).build();
+        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("T2").acceptWaiting(false).build();
+
+        mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(kid1))).andExpect(status().isOk());
+        mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(kid2))).andExpect(status().isOk());
+
+        // 3. Add kid1 (should succeed)
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber())).andExpect(status().isOk());
+
+        // 4. Add kid2 (should fail with statusCode = 409)
+        MvcResult result = mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getTicketNumber()))
+                .andExpect(status().isConflict())
+                .andReturn();
+
+        ErrorResponse error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
+        assertThat(error.getErrorMessage()).isEqualTo("Site is full and kid does not accept waiting");
     }
 }

@@ -1,6 +1,8 @@
 package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.playground.exception.ResourceNotFoundException;
+import org.example.playground.exception.InvalidTicketException;
 import org.example.playground.model.Kid;
 import org.example.playground.persistence.KidRepository;
 import org.springframework.stereotype.Service;
@@ -21,14 +23,14 @@ public class KidService {
         if (kid.getTicketNumber() == null) {
             kid.setTicketNumber(UUID.randomUUID().toString());
         } else if (kidRepository.existsById(kid.getTicketNumber())) {
-            throw new RuntimeException("Ticket number already exists");
+            throw new InvalidTicketException("Ticket number already exists: " + kid.getTicketNumber());
         }
         return kidRepository.save(kid);
     }
 
     public Kid updateKid(Kid updatedKid) {
         if (updatedKid.getTicketNumber() == null || !kidRepository.existsById(updatedKid.getTicketNumber())) {
-            throw new RuntimeException("Kid not found");
+            throw new ResourceNotFoundException("Kid not found");
         }
         return kidRepository.save(updatedKid);
     }

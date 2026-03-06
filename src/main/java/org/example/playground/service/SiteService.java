@@ -1,6 +1,7 @@
 package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.playground.exception.ResourceNotFoundException;
 import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.PlaySiteRepository;
@@ -45,7 +46,7 @@ public class SiteService {
     public double getUtilization(Long id) {
         PlaySite site = getPlaySite(id);
         if (site == null) {
-            throw new RuntimeException("PlaySite not found");
+            throw new ResourceNotFoundException("PlaySite not found");
         }
         int capacity = PlaySiteUtils.calculateTotalCapacity(site);
         if (capacity == 0) {
