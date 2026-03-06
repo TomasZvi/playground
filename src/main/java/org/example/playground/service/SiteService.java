@@ -3,6 +3,7 @@ package org.example.playground.service;
 import lombok.RequiredArgsConstructor;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.PlaySiteRepository;
+import org.example.playground.utils.PlaySiteUtils;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -32,33 +33,12 @@ public class SiteService {
         playSiteRepository.deleteById(id);
     }
 
-    public int calculateTotalCapacity(PlaySite site) {
-        if (site == null || site.getAttractions() == null) {
-            return 0;
-        }
-        return site.getAttractions().stream()
-                .mapToInt(a -> a.getAttractionType().getCapacity() * a.getQuantity())
-                .sum();
-    }
-
-    public int calculateFreeSpace(PlaySite site) {
-        if (site == null) {
-            return 0;
-        }
-        int kidsOnSite = site.getKidsOnSite() != null ? site.getKidsOnSite().size() : 0;
-        return calculateTotalCapacity(site) - kidsOnSite;
-    }
-
-    public boolean hasFreeSpace(PlaySite site) {
-        return calculateFreeSpace(site) > 0;
-    }
-
     public double getUtilization(Long id) {
         PlaySite site = getPlaySite(id);
         if (site == null) {
             throw new RuntimeException("PlaySite not found");
         }
-        int capacity = calculateTotalCapacity(site);
+        int capacity = PlaySiteUtils.calculateTotalCapacity(site);
         if (capacity == 0) {
             return 0.0;
         }
