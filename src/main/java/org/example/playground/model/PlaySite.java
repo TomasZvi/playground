@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -18,12 +19,15 @@ public class PlaySite {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    private List<AttractionConfiguration> attractions;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<AttractionConfiguration> attractions = new ArrayList<>();
 
-    @ManyToMany
-    private List<Kid> kidsOnSite;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<Kid> kidsOnSite = new ArrayList<>();
 
-    @ManyToMany
-    private List<Kid> kidsQueue;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<Kid> kidsQueue = new ArrayList<>();
 }
