@@ -5,32 +5,35 @@ import org.example.playground.model.Kid;
 import org.example.playground.persistence.KidRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class KidService {
 
     private final KidRepository kidRepository;
 
-    public Kid getKid(Long id) {
-        return kidRepository.findById(id).orElse(null);
+    public Kid getKid(String ticketNumber) {
+        return kidRepository.findById(ticketNumber).orElse(null);
     }
 
     public Kid createKid(Kid kid) {
-        if (kidRepository.existsByTicketNumber(kid.getTicketNumber())) {
+        if (kid.getTicketNumber() == null) {
+            kid.setTicketNumber(UUID.randomUUID().toString());
+        } else if (kidRepository.existsById(kid.getTicketNumber())) {
             throw new RuntimeException("Ticket number already exists");
         }
         return kidRepository.save(kid);
     }
 
     public Kid updateKid(Kid updatedKid) {
-        Kid existingKid = kidRepository.findByTicketNumber(updatedKid.getTicketNumber());
-        if (existingKid != null && !existingKid.getId().equals(updatedKid.getId())) {
-            throw new RuntimeException("Ticket number already exists");
+        if (updatedKid.getTicketNumber() == null || !kidRepository.existsById(updatedKid.getTicketNumber())) {
+            throw new RuntimeException("Kid not found");
         }
         return kidRepository.save(updatedKid);
     }
 
-    public void deleteKidById(Long id) {
-        kidRepository.deleteById(id);
+    public void deleteKid(String ticketNumber) {
+        kidRepository.deleteById(ticketNumber);
     }
 }

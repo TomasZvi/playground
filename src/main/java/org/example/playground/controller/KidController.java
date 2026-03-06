@@ -17,9 +17,9 @@ public class KidController {
         return kidService.createKid(kid);
     }
 
-    @GetMapping( "/{id}")
-    public Kid getKid(@PathVariable Long id) {
-        return kidService.getKid(id);
+    @GetMapping( "/{ticketNumber}")
+    public Kid getKid(@PathVariable String ticketNumber) {
+        return kidService.getKid(ticketNumber);
     }
 
     @PutMapping
@@ -27,9 +27,9 @@ public class KidController {
         return kidService.updateKid(updatedKid);
     }
 
-    @DeleteMapping("/{id}")
-    public void deleteKid(@PathVariable Long id) {
-        kidService.deleteKidById(id);
+    @DeleteMapping("/{ticketNumber}")
+    public void deleteKid(@PathVariable String ticketNumber) {
+        kidService.deleteKid(ticketNumber);
     }
 
 }

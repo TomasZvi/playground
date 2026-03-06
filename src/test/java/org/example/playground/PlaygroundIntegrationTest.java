@@ -63,7 +63,7 @@ public class PlaygroundIntegrationTest {
                 .andReturn();
 
         Kid createdKid = objectMapper.readValue(kidResult.getResponse().getContentAsString(), Kid.class);
-        assertThat(createdKid.getId()).isNotNull();
+        assertThat(createdKid.getTicketNumber()).isNotNull();
         assertThat(createdKid.getName()).isEqualTo("John Doe");
 
         // 2. Create default PlaySite
@@ -105,7 +105,7 @@ public class PlaygroundIntegrationTest {
                 .isEqualTo(AttractionType.SLIDE);
 
         // 4. Add the kid to play site
-        mockMvc.perform(post("/playSites/" + updatedSite.getId() + "/kids/" + createdKid.getId()))
+        mockMvc.perform(post("/playSites/" + updatedSite.getId() + "/kids/" + createdKid.getTicketNumber()))
                 .andExpect(status().isOk());
 
         // Verify kid is in the site
@@ -114,10 +114,10 @@ public class PlaygroundIntegrationTest {
                 .andReturn();
         PlaySite siteWithKid = objectMapper.readValue(getSiteResult.getResponse().getContentAsString(), PlaySite.class);
         assertThat(siteWithKid.getKidsOnSite())
-                .anyMatch(k -> k.getId().equals(createdKid.getId()));
+                .anyMatch(k -> k.getTicketNumber().equals(createdKid.getTicketNumber()));
 
         // 5. Remove kid from the play site
-        mockMvc.perform(delete("/playSites/" + updatedSite.getId() + "/kids/" + createdKid.getId()))
+        mockMvc.perform(delete("/playSites/" + updatedSite.getId() + "/kids/" + createdKid.getTicketNumber()))
                 .andExpect(status().isOk());
 
         // Verify kid is removed
@@ -126,7 +126,7 @@ public class PlaygroundIntegrationTest {
                 .andReturn();
         PlaySite finalSite = objectMapper.readValue(getSiteFinalResult.getResponse().getContentAsString(), PlaySite.class);
         if (finalSite.getKidsOnSite() != null) {
-            assertThat(finalSite.getKidsOnSite()).noneMatch(k -> k.getId().equals(createdKid.getId()));
+            assertThat(finalSite.getKidsOnSite()).noneMatch(k -> k.getTicketNumber().equals(createdKid.getTicketNumber()));
         }
     }
 
@@ -161,11 +161,11 @@ public class PlaygroundIntegrationTest {
         kid2 = objectMapper.readValue(kid2Result.getResponse().getContentAsString(), Kid.class);
 
         // 3. Add kid 1 to the site (should succeed)
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getId()))
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber()))
                 .andExpect(status().isOk());
 
         // 4. Add kid 2 to the site (should go to queue)
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getId()))
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getTicketNumber()))
                 .andExpect(status().isOk());
 
         // 5. Verify kid 1 is on site and kid 2 is in queue
@@ -174,12 +174,12 @@ public class PlaygroundIntegrationTest {
                 .andReturn();
         PlaySite siteStatus = objectMapper.readValue(getSiteResult.getResponse().getContentAsString(), PlaySite.class);
         assertThat(siteStatus.getKidsOnSite()).hasSize(1);
-        assertThat(siteStatus.getKidsOnSite().getFirst().getId()).isEqualTo(kid1.getId());
+        assertThat(siteStatus.getKidsOnSite().getFirst().getTicketNumber()).isEqualTo(kid1.getTicketNumber());
         assertThat(siteStatus.getKidsQueue()).hasSize(1);
-        assertThat(siteStatus.getKidsQueue().getFirst().getId()).isEqualTo(kid2.getId());
+        assertThat(siteStatus.getKidsQueue().getFirst().getTicketNumber()).isEqualTo(kid2.getTicketNumber());
 
         // 6. Remove kid 1 (kid 2 should move to site)
-        mockMvc.perform(delete("/playSites/" + createdSite.getId() + "/kids/" + kid1.getId()))
+        mockMvc.perform(delete("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber()))
                 .andExpect(status().isOk());
 
         // 7. Verify kid 2 is now on site and the queue is empty
@@ -188,7 +188,7 @@ public class PlaygroundIntegrationTest {
                 .andReturn();
         PlaySite finalSiteStatus = objectMapper.readValue(getSiteFinalResult.getResponse().getContentAsString(), PlaySite.class);
         assertThat(finalSiteStatus.getKidsOnSite()).hasSize(1);
-        assertThat(finalSiteStatus.getKidsOnSite().getFirst().getId()).isEqualTo(kid2.getId());
+        assertThat(finalSiteStatus.getKidsOnSite().getFirst().getTicketNumber()).isEqualTo(kid2.getTicketNumber());
         assertThat(finalSiteStatus.getKidsQueue()).isEmpty();
     }
 
@@ -221,7 +221,7 @@ public class PlaygroundIntegrationTest {
             MvcResult kidResult = mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(kid)))
                     .andExpect(status().isOk()).andReturn();
             kid = objectMapper.readValue(kidResult.getResponse().getContentAsString(), Kid.class);
-            mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid.getId()))
+            mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid.getTicketNumber()))
                     .andExpect(status().isOk());
         }
 
@@ -262,8 +262,8 @@ public class PlaygroundIntegrationTest {
         kid2 = objectMapper.readValue(kid2Result.getResponse().getContentAsString(), Kid.class);
 
         // 3. Add kid 1 to site and kid 2 to queue
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getId())).andExpect(status().isOk());
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getId())).andExpect(status().isOk());
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber())).andExpect(status().isOk());
+        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getTicketNumber())).andExpect(status().isOk());
 
         // Verify state
         MvcResult midResult = mockMvc.perform(get("/playSites/" + createdSite.getId())).andExpect(status().isOk()).andReturn();

@@ -18,12 +18,12 @@ public class KidsSiteActionsService {
     private final SiteService siteService;
 
     @Transactional
-    public void addKidToPlaySite(Long siteId, Long kidId) {
+    public void addKidToPlaySite(Long siteId, String ticketNumber) {
         PlaySite site = playSiteRepository.findById(siteId).orElseThrow();
-        Kid kid = kidRepository.findById(kidId).orElseThrow();
+        Kid kid = kidRepository.findById(ticketNumber).orElseThrow();
 
-        if (site.getKidsOnSite().stream().anyMatch(k -> k.getId().equals(kidId)) ||
-            site.getKidsQueue().stream().anyMatch(k -> k.getId().equals(kidId))) {
+        if (site.getKidsOnSite().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber)) ||
+            site.getKidsQueue().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber))) {
             return;
         }
 
@@ -38,10 +38,10 @@ public class KidsSiteActionsService {
     }
 
     @Transactional
-    public void removeKidFromPlaySite(Long siteId, Long kidId) {
+    public void removeKidFromPlaySite(Long siteId, String ticketNumber) {
         PlaySite site = playSiteRepository.findById(siteId).orElseThrow();
-        site.getKidsOnSite().removeIf(k -> k.getId().equals(kidId));
-        site.getKidsQueue().removeIf(k -> k.getId().equals(kidId));
+        site.getKidsOnSite().removeIf(k -> k.getTicketNumber().equals(ticketNumber));
+        site.getKidsQueue().removeIf(k -> k.getTicketNumber().equals(ticketNumber));
 
         siteService.processQueue(site);
 
