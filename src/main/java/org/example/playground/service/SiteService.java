@@ -1,12 +1,9 @@
 package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.PlaySiteRepository;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
 
 @RequiredArgsConstructor
 @Service
@@ -33,19 +30,5 @@ public class SiteService {
 
     public void deletePlaySite(Long id) {
         playSiteRepository.deleteById(id);
-    }
-
-    public void addKidToPlaySite(Long siteId, Long kidId) {
-        PlaySite site = playSiteRepository.findById(siteId).orElseThrow();
-        Kid kid = new Kid();
-        kid.setId(kidId);
-        site.getKidsOnSite().add(kid);
-        playSiteRepository.save(site);
-    }
-
-    public void removeKidFromPlaySite(Long siteId, Long kidId) {
-        PlaySite site = playSiteRepository.findById(siteId).orElseThrow();
-        site.getKidsOnSite().removeIf(k -> k.getId().equals(kidId));
-        playSiteRepository.save(site);
     }
 }
