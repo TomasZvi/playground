@@ -13,7 +13,7 @@ public class KidController {
     private final KidService kidService;
 
     @PostMapping
-    public Kid createKid(Kid kid) {
+    public Kid createKid(@RequestBody Kid kid) {
         return kidService.createKid(kid);
     }
 
