@@ -35,4 +35,14 @@ public class PlaySiteController {
         siteService.deletePlaySite(id);
     }
 
+    @PostMapping("/{siteId}/kids/{kidId}")
+    public void addKidToPlaySite(@PathVariable Long siteId, @PathVariable Long kidId) {
+        siteService.addKidToPlaySite(siteId, kidId);
+    }
+
+    @DeleteMapping("/{siteId}/kids/{kidId}")
+    public void removeKidFromPlaySite(@PathVariable Long siteId, @PathVariable Long kidId) {
+        siteService.removeKidFromPlaySite(siteId, kidId);
+    }
+
 }
