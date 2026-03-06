@@ -1,7 +1,5 @@
 package org.example.playground.controller;
 
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.example.playground.model.PlaySite;
 import org.example.playground.service.SiteService;
@@ -15,7 +13,7 @@ public class PlaySiteController {
     private final SiteService siteService;
 
     @PostMapping
-    public PlaySite createPlaySite(@Nullable PlaySite playSite) {
+    public PlaySite createPlaySite(@RequestBody(required = false) PlaySite playSite) {
         if (playSite == null) {
             return siteService.createDefaultPlaySite();
         }
@@ -28,7 +26,7 @@ public class PlaySiteController {
     }
 
     @PutMapping
-    public PlaySite updatePlaySite(@Nonnull PlaySite playSite) {
+    public PlaySite updatePlaySite(@RequestBody PlaySite playSite) {
         return siteService.updatePlaySite(playSite);
     }
 
