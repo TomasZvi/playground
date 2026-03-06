@@ -21,4 +21,5 @@ public class Kid {
     private String ticketNumber;
     private String name;
     private String age;
+    private boolean acceptWaiting;
 }

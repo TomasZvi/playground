@@ -30,4 +30,18 @@ public class PlaySite {
     @ManyToMany(fetch = FetchType.EAGER)
     @Builder.Default
     private List<Kid> kidsQueue = new ArrayList<>();
+
+    public int getTotalCapacity() {
+        return attractions.stream()
+                .mapToInt(a -> a.getAttractionType().getCapacity() * a.getQuantity())
+                .sum();
+    }
+
+    public int freeSpace() {
+        return getTotalCapacity() - kidsOnSite.size();
+    }
+
+    public boolean hasFreeSpace() {
+        return freeSpace() > 0;
+    }
 }
