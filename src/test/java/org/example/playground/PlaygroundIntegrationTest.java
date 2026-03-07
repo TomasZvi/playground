@@ -54,7 +54,7 @@ public class PlaygroundIntegrationTest {
     }
 
     @Test
-    public void testFullCycle() throws Exception {
+    public void testFullCycle() {
         // 1. Create Kid
         Kid kid = Kid.builder()
                 .name("John Doe")
@@ -62,23 +62,12 @@ public class PlaygroundIntegrationTest {
                 .ticketNumber("T123")
                 .build();
 
-        MvcResult kidResult = mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        Kid createdKid = objectMapper.readValue(kidResult.getResponse().getContentAsString(), Kid.class);
+        Kid createdKid = addKid(kid);
         assertThat(createdKid.getTicketNumber()).isNotNull();
         assertThat(createdKid.getName()).isEqualTo("John Doe");
 
         // 2. Create default PlaySite
-        MvcResult siteResult = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite createdSite = createPlaySite(null);
         assertThat(createdSite.getId()).isNotNull();
         assertThat(createdSite.getKidsOnSite())
                 .isNotNull()
@@ -97,13 +86,7 @@ public class PlaygroundIntegrationTest {
                 .build();
         createdSite.setAttractions(Collections.singletonList(attraction));
 
-        MvcResult updateResult = mockMvc.perform(put("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(createdSite)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        PlaySite updatedSite = objectMapper.readValue(updateResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite updatedSite = updatePlaySite(createdSite);
         assertThat(updatedSite.getAttractions())
                 .isNotNull()
                 .hasSize(1);
@@ -111,33 +94,25 @@ public class PlaygroundIntegrationTest {
                 .isEqualTo(AttractionType.SLIDE);
 
         // 4. Add the kid to play site
-        mockMvc.perform(post("/playSites/" + updatedSite.getId() + "/kids/" + createdKid.getTicketNumber()))
-                .andExpect(status().isOk());
+        addKidToSite(updatedSite.getId(), createdKid.getTicketNumber());
 
         // Verify kid is in the site
-        MvcResult getSiteResult = mockMvc.perform(get("/playSites/" + updatedSite.getId()))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite siteWithKid = objectMapper.readValue(getSiteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite siteWithKid = getPlaySite(updatedSite.getId());
         assertThat(siteWithKid.getKidsOnSite())
                 .anyMatch(k -> k.getTicketNumber().equals(createdKid.getTicketNumber()));
 
         // 5. Remove kid from the play site
-        mockMvc.perform(delete("/playSites/" + updatedSite.getId() + "/kids/" + createdKid.getTicketNumber()))
-                .andExpect(status().isOk());
+        removeKidFromSite(updatedSite.getId(), createdKid.getTicketNumber());
 
         // Verify kid is removed
-        MvcResult getSiteFinalResult = mockMvc.perform(get("/playSites/" + updatedSite.getId()))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite finalSite = objectMapper.readValue(getSiteFinalResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite finalSite = getPlaySite(updatedSite.getId());
         if (finalSite.getKidsOnSite() != null) {
             assertThat(finalSite.getKidsOnSite()).noneMatch(k -> k.getTicketNumber().equals(createdKid.getTicketNumber()));
         }
     }
 
     @Test
-    public void testCapacityAndQueue() throws Exception {
+    public void testCapacityAndQueue() {
         // 1. Create a PlaySite with capacity 1
         AttractionConfiguration attraction = AttractionConfiguration.builder()
                 .attractionType(AttractionType.CAROUSEL) // capacity 1
@@ -147,63 +122,40 @@ public class PlaygroundIntegrationTest {
                 .attractions(Collections.singletonList(attraction))
                 .build();
 
-        MvcResult siteResult = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(site)))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite createdSite = createPlaySite(site);
 
         // 2. Create 2 kids
         Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("T1").acceptWaiting(true).build();
         Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("T2").acceptWaiting(true).build();
 
-        MvcResult kid1Result = mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid1)))
-                .andExpect(status().isOk()).andReturn();
-        kid1 = objectMapper.readValue(kid1Result.getResponse().getContentAsString(), Kid.class);
-
-        MvcResult kid2Result = mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid2)))
-                .andExpect(status().isOk()).andReturn();
-        kid2 = objectMapper.readValue(kid2Result.getResponse().getContentAsString(), Kid.class);
+        kid1 = addKid(kid1);
+        kid2 = addKid(kid2);
 
         // 3. Add kid 1 to the site (should succeed)
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber()))
-                .andExpect(status().isOk());
+        addKidToSite(createdSite.getId(), kid1.getTicketNumber());
 
         // 4. Add kid 2 to the site (should go to queue)
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getTicketNumber()))
-                .andExpect(status().isOk());
+        addKidToSite(createdSite.getId(), kid2.getTicketNumber());
 
         // 5. Verify kid 1 is on site and kid 2 is in queue
-        MvcResult getSiteResult = mockMvc.perform(get("/playSites/" + createdSite.getId()))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite siteStatus = objectMapper.readValue(getSiteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite siteStatus = getPlaySite(createdSite.getId());
         assertThat(siteStatus.getKidsOnSite()).hasSize(1);
         assertThat(siteStatus.getKidsOnSite().getFirst().getTicketNumber()).isEqualTo(kid1.getTicketNumber());
         assertThat(siteStatus.getKidsQueue()).hasSize(1);
         assertThat(siteStatus.getKidsQueue().getFirst().getTicketNumber()).isEqualTo(kid2.getTicketNumber());
 
         // 6. Remove kid 1 (kid 2 should move to site)
-        mockMvc.perform(delete("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber()))
-                .andExpect(status().isOk());
+        removeKidFromSite(createdSite.getId(), kid1.getTicketNumber());
 
         // 7. Verify kid 2 is now on site and the queue is empty
-        MvcResult getSiteFinalResult = mockMvc.perform(get("/playSites/" + createdSite.getId()))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite finalSiteStatus = objectMapper.readValue(getSiteFinalResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite finalSiteStatus = getPlaySite(createdSite.getId());
         assertThat(finalSiteStatus.getKidsOnSite()).hasSize(1);
         assertThat(finalSiteStatus.getKidsOnSite().getFirst().getTicketNumber()).isEqualTo(kid2.getTicketNumber());
         assertThat(finalSiteStatus.getKidsQueue()).isEmpty();
     }
 
     @Test
-    public void testUtilization() throws Exception {
+    public void testUtilization() {
         // 1. Create a PlaySite with capacity 10 (Ball Pit)
         AttractionConfiguration attraction = AttractionConfiguration.builder()
                 .attractionType(AttractionType.BALL_PIT) // capacity 10
@@ -213,38 +165,24 @@ public class PlaygroundIntegrationTest {
                 .attractions(Collections.singletonList(attraction))
                 .build();
 
-        MvcResult siteResult = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(site)))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite createdSite = createPlaySite(site);
 
         // 2. Check initial utilization (should be 0.0)
-        mockMvc.perform(get("/playSites/" + createdSite.getId() + "/utilization"))
-                .andExpect(status().isOk())
-                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("0.0"));
+        assertThat(getUtilization(createdSite.getId())).isEqualTo("0.0");
 
         // 3. Add 5 kids
         for (int i = 0; i < 5; i++) {
             Kid kid = Kid.builder().name("Kid " + i).ticketNumber("TU" + i).build();
-            MvcResult kidResult = mockMvc.perform(post("/kids")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(toJson(kid)))
-                    .andExpect(status().isOk()).andReturn();
-            kid = objectMapper.readValue(kidResult.getResponse().getContentAsString(), Kid.class);
-            mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid.getTicketNumber()))
-                    .andExpect(status().isOk());
+            kid = addKid(kid);
+            addKidToSite(createdSite.getId(), kid.getTicketNumber());
         }
 
         // 4. Check utilization (should be 50.0)
-        mockMvc.perform(get("/playSites/" + createdSite.getId() + "/utilization"))
-                .andExpect(status().isOk())
-                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("50.0"));
+        assertThat(getUtilization(createdSite.getId())).isEqualTo("50.0");
     }
 
     @Test
-    public void testQueueMovesWhenCapacityIncreases() throws Exception {
+    public void testQueueMovesWhenCapacityIncreases() {
         // 1. Create a PlaySite with capacity 1
         AttractionConfiguration attraction1 = AttractionConfiguration.builder()
                 .attractionType(AttractionType.CAROUSEL) // capacity 1
@@ -254,54 +192,31 @@ public class PlaygroundIntegrationTest {
                 .attractions(Collections.singletonList(attraction1))
                 .build();
 
-        MvcResult siteResult = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(site)))
-                .andExpect(status().isOk())
-                .andReturn();
-        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite createdSite = createPlaySite(site);
 
         // 2. Create 2 kids (accepting waiting)
         Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("TK1").acceptWaiting(true).build();
         Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("TK2").acceptWaiting(true).build();
 
-        MvcResult kid1Result = mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid1)))
-                .andExpect(status().isOk()).andReturn();
-        kid1 = objectMapper.readValue(kid1Result.getResponse().getContentAsString(), Kid.class);
-
-        MvcResult kid2Result = mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid2)))
-                .andExpect(status().isOk()).andReturn();
-        kid2 = objectMapper.readValue(kid2Result.getResponse().getContentAsString(), Kid.class);
+        kid1 = addKid(kid1);
+        kid2 = addKid(kid2);
 
         // 3. Add kid 1 to site and kid 2 to queue
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber()))
-                .andExpect(status().isOk());
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getTicketNumber()))
-                .andExpect(status().isOk());
+        addKidToSite(createdSite.getId(), kid1.getTicketNumber());
+        addKidToSite(createdSite.getId(), kid2.getTicketNumber());
 
         // Verify state
-        MvcResult midResult = mockMvc.perform(get("/playSites/" + createdSite.getId()))
-                .andExpect(status().isOk()).andReturn();
-        PlaySite midSite = objectMapper.readValue(midResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite midSite = getPlaySite(createdSite.getId());
         assertThat(midSite.getKidsOnSite()).hasSize(1);
         assertThat(midSite.getKidsQueue()).hasSize(1);
 
         // 4. Increase capacity by adding another carousel
         midSite.getAttractions().getFirst().setQuantity(2);
 
-        mockMvc.perform(put("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(midSite)))
-                .andExpect(status().isOk());
+        updatePlaySite(midSite);
 
         // 5. Verify kid 2 moved to site automatically
-        MvcResult finalResult = mockMvc.perform(get("/playSites/" + createdSite.getId()))
-                .andExpect(status().isOk()).andReturn();
-        PlaySite finalSite = objectMapper.readValue(finalResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite finalSite = getPlaySite(createdSite.getId());
         assertThat(finalSite.getKidsOnSite()).hasSize(2);
         assertThat(finalSite.getKidsQueue()).isEmpty();
     }
@@ -309,10 +224,7 @@ public class PlaygroundIntegrationTest {
     @Test
     public void testTicketNumberUniqueness() throws Exception {
         Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("UNIQUE_TICKET").build();
-        mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid1)))
-                .andExpect(status().isOk());
+        addKid(kid1);
 
         Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("UNIQUE_TICKET").build();
         MvcResult result = mockMvc.perform(post("/kids")
@@ -333,28 +245,17 @@ public class PlaygroundIntegrationTest {
                 .quantity(1)
                 .build();
         PlaySite site = PlaySite.builder().attractions(Collections.singletonList(attraction)).build();
-        MvcResult siteResult = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(site)))
-                .andExpect(status().isOk()).andReturn();
-        PlaySite createdSite = objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+        PlaySite createdSite = createPlaySite(site);
 
         // 2. Create 2 kids, kid2 does not accept waiting
         Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("T1").acceptWaiting(true).build();
         Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("T2").acceptWaiting(false).build();
 
-        mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid1)))
-                .andExpect(status().isOk());
-        mockMvc.perform(post("/kids")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid2)))
-                .andExpect(status().isOk());
+        addKid(kid1);
+        addKid(kid2);
 
         // 3. Add kid1 (should succeed)
-        mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid1.getTicketNumber()))
-                .andExpect(status().isOk());
+        addKidToSite(createdSite.getId(), kid1.getTicketNumber());
 
         // 4. Add kid2 (should fail with statusCode = 409)
         MvcResult result = mockMvc.perform(post("/playSites/" + createdSite.getId() + "/kids/" + kid2.getTicketNumber()))
@@ -365,52 +266,129 @@ public class PlaygroundIntegrationTest {
         assertThat(error.getErrorMessage()).isEqualTo("Site is full and kid does not accept waiting");
     }
 
-    private String toJson(Object obj) {
-        return objectMapper.writeValueAsString(obj);
-    }
-
     @Test
-    public void testVisitorCount() throws Exception {
-        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("VT1").build();
-        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("VT2").build();
+    public void testVisitorCount() {
+        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("T1").build();
+        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("T2").build();
 
-        mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid1)))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(kid2)))
-                .andExpect(status().isOk());
+        addKid(kid1);
+        addKid(kid2);
 
         AttractionConfiguration attraction = AttractionConfiguration.builder()
                 .attractionType(AttractionType.BALL_PIT)
                 .quantity(1)
                 .build();
-        PlaySite site = PlaySite.builder().attractions(Collections.singletonList(attraction)).build();
+        PlaySite siteTemplate = PlaySite.builder().attractions(Collections.singletonList(attraction)).build();
 
-        MvcResult site1Result = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(site)))
-                .andExpect(status().isOk()).andReturn();
+        PlaySite site1 = createPlaySite(siteTemplate);
+        PlaySite site2 = createPlaySite(siteTemplate);
 
-        PlaySite site1 = objectMapper.readValue(site1Result.getResponse().getContentAsString(), PlaySite.class);
-        MvcResult site2Result = mockMvc.perform(post("/playSites")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(site)))
-                .andExpect(status().isOk()).andReturn();
+        addKidToSite(site1.getId(), "T1");
+        addKidToSite(site2.getId(), "T2");
 
-        PlaySite site2 = objectMapper.readValue(site2Result.getResponse().getContentAsString(), PlaySite.class);
-        mockMvc.perform(post("/playSites/" + site1.getId() + "/kids/VT1"))
-                .andExpect(status().isOk());
-        mockMvc.perform(post("/playSites/" + site2.getId() + "/kids/VT2"))
-                .andExpect(status().isOk());
-        mockMvc.perform(get("/visitors/count")).andExpect(status().isOk())
-                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("2"));
-        mockMvc.perform(delete("/playSites/" + site1.getId() + "/kids/VT1"))
-                .andExpect(status().isOk());
-        mockMvc.perform(post("/playSites/" + site2.getId() + "/kids/VT1"))
-                .andExpect(status().isOk());
-        mockMvc.perform(get("/visitors/count")).andExpect(status().isOk())
-                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("2"));
+        assertThat(getVisitorCount()).isEqualTo(2);
+
+        removeKidFromSite(site1.getId(), "T1");
+        addKidToSite(site2.getId(), "T1");
+
+        assertThat(getVisitorCount()).isEqualTo(2);
+    }
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Kid addKid(Kid kid) {
+        try {
+            MvcResult kidResult = mockMvc.perform(post("/kids")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(toJson(kid)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return objectMapper.readValue(kidResult.getResponse().getContentAsString(), Kid.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private PlaySite createPlaySite(PlaySite site) {
+        try {
+            MvcResult siteResult = mockMvc.perform(post("/playSites")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(site == null ? "" : toJson(site)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return objectMapper.readValue(siteResult.getResponse().getContentAsString(), PlaySite.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private PlaySite updatePlaySite(PlaySite site) {
+        try {
+            MvcResult updateResult = mockMvc.perform(put("/playSites")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(toJson(site)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return objectMapper.readValue(updateResult.getResponse().getContentAsString(), PlaySite.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private PlaySite getPlaySite(Long siteId) {
+        try {
+            MvcResult getSiteResult = mockMvc.perform(get("/playSites/" + siteId))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return objectMapper.readValue(getSiteResult.getResponse().getContentAsString(), PlaySite.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void addKidToSite(Long siteId, String ticketNumber) {
+        try {
+            mockMvc.perform(post("/playSites/" + siteId + "/kids/" + ticketNumber))
+                    .andExpect(status().isOk());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void removeKidFromSite(Long siteId, String ticketNumber) {
+        try {
+            mockMvc.perform(delete("/playSites/" + siteId + "/kids/" + ticketNumber))
+                    .andExpect(status().isOk());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getUtilization(Long siteId) {
+        try {
+            MvcResult result = mockMvc.perform(get("/playSites/" + siteId + "/utilization"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return result.getResponse().getContentAsString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private long getVisitorCount() {
+        try {
+            MvcResult result = mockMvc.perform(get("/visitors/count"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            return Long.parseLong(result.getResponse().getContentAsString());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
