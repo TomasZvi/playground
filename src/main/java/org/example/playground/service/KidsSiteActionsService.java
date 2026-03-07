@@ -27,7 +27,7 @@ public class KidsSiteActionsService {
                 .orElseThrow(() -> new ResourceNotFoundException("Kid not found"));
 
         if (site.getKidsOnSite().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber)) ||
-            site.getKidsQueue().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber))) {
+                site.getKidsQueue().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber))) {
             return;
         }
 

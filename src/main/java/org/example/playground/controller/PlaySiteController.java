@@ -22,7 +22,7 @@ public class PlaySiteController {
         return siteService.createPlaySite(playSite);
     }
 
-    @GetMapping( "/{id}")
+    @GetMapping("/{id}")
     public PlaySite getPlaySite(@PathVariable Long id) {
         return siteService.getPlaySite(id);
     }
@@ -32,7 +32,7 @@ public class PlaySiteController {
         return siteService.updatePlaySite(playSite);
     }
 
-    @DeleteMapping( "/{id}")
+    @DeleteMapping("/{id}")
     public void deletePlaySite(@PathVariable Long id) {
         siteService.deletePlaySite(id);
     }
