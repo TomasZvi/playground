@@ -32,7 +32,7 @@ public class KidsSiteActionsService {
         }
 
         if (PlaySiteUtils.hasFreeSpace(site)) {
-            site.getKidsOnSite().add(kid);
+            siteService.addKidToSite(site, kid);
         } else if (kid.isAcceptWaiting()) {
             site.getKidsQueue().add(kid);
         } else {

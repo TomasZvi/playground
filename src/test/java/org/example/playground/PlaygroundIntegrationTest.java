@@ -7,6 +7,7 @@ import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.KidRepository;
 import org.example.playground.persistence.PlaySiteRepository;
+import org.example.playground.persistence.VisitorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,11 +42,15 @@ public class PlaygroundIntegrationTest {
     @Autowired
     private PlaySiteRepository playSiteRepository;
 
+    @Autowired
+    private VisitorRepository visitorRepository;
+
     @BeforeEach
     public void setup() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         playSiteRepository.deleteAll();
         kidRepository.deleteAll();
+        visitorRepository.deleteAll();
     }
 
     @Test
@@ -364,4 +369,48 @@ public class PlaygroundIntegrationTest {
         return objectMapper.writeValueAsString(obj);
     }
 
+    @Test
+    public void testVisitorCount() throws Exception {
+        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("VT1").build();
+        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("VT2").build();
+
+        mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(kid1)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/kids").contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(kid2)))
+                .andExpect(status().isOk());
+
+        AttractionConfiguration attraction = AttractionConfiguration.builder()
+                .attractionType(AttractionType.BALL_PIT)
+                .quantity(1)
+                .build();
+        PlaySite site = PlaySite.builder().attractions(Collections.singletonList(attraction)).build();
+
+        MvcResult site1Result = mockMvc.perform(post("/playSites")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(site)))
+                .andExpect(status().isOk()).andReturn();
+
+        PlaySite site1 = objectMapper.readValue(site1Result.getResponse().getContentAsString(), PlaySite.class);
+        MvcResult site2Result = mockMvc.perform(post("/playSites")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(site)))
+                .andExpect(status().isOk()).andReturn();
+
+        PlaySite site2 = objectMapper.readValue(site2Result.getResponse().getContentAsString(), PlaySite.class);
+        mockMvc.perform(post("/playSites/" + site1.getId() + "/kids/VT1"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/playSites/" + site2.getId() + "/kids/VT2"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/visitors/count")).andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("2"));
+        mockMvc.perform(delete("/playSites/" + site1.getId() + "/kids/VT1"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/playSites/" + site2.getId() + "/kids/VT1"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/visitors/count")).andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEqualTo("2"));
+    }
 }

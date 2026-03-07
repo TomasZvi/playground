@@ -1,11 +1,13 @@
 package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.playground.event.KidEnteredEvent;
 import org.example.playground.exception.ResourceNotFoundException;
 import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.PlaySiteRepository;
 import org.example.playground.utils.PlaySiteUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class SiteService {
 
     private final PlaySiteRepository playSiteRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PlaySite createDefaultPlaySite() {
         PlaySite defaultPlaySite = PlaySite.builder().build();
@@ -35,7 +38,14 @@ public class SiteService {
     public void processQueue(PlaySite site) {
         while (!site.getKidsQueue().isEmpty() && PlaySiteUtils.hasFreeSpace(site)) {
             Kid kidFromQueue = site.getKidsQueue().removeFirst();
-            site.getKidsOnSite().add(kidFromQueue);
+            addKidToSite(site, kidFromQueue);
+        }
+    }
+
+    public void addKidToSite(PlaySite site, Kid kid) {
+        site.getKidsOnSite().add(kid);
+        if (site.getId() != null) {
+            eventPublisher.publishEvent(new KidEnteredEvent(kid.getTicketNumber(), site.getId()));
         }
     }
 
