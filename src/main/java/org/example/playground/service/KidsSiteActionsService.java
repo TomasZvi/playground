@@ -1,8 +1,8 @@
 package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.playground.exception.KidWaitingException;
-import org.example.playground.exception.ResourceNotFoundException;
+import org.example.playground.error.exception.KidWaitingException;
+import org.example.playground.error.exception.ResourceNotFoundException;
 import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
 import org.example.playground.persistence.KidRepository;

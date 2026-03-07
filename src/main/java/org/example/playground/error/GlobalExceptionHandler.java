@@ -1,9 +1,8 @@
-package org.example.playground.controller;
+package org.example.playground.error;
 
-import org.example.playground.dto.ErrorResponse;
-import org.example.playground.exception.KidWaitingException;
-import org.example.playground.exception.ResourceNotFoundException;
-import org.example.playground.exception.InvalidTicketException;
+import org.example.playground.error.exception.KidWaitingException;
+import org.example.playground.error.exception.ResourceNotFoundException;
+import org.example.playground.error.exception.InvalidTicketException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

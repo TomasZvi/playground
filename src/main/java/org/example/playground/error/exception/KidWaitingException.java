@@ -1,4 +1,4 @@
-package org.example.playground.exception;
+package org.example.playground.error.exception;
 
 public class KidWaitingException extends RuntimeException {
     public KidWaitingException(String message) {

@@ -1,4 +1,4 @@
-package org.example.playground.dto;
+package org.example.playground.error;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

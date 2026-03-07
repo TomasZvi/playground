@@ -1,6 +1,6 @@
 package org.example.playground;
 
-import org.example.playground.dto.ErrorResponse;
+import org.example.playground.error.ErrorResponse;
 import org.example.playground.model.AttractionConfiguration;
 import org.example.playground.model.AttractionType;
 import org.example.playground.model.Kid;
