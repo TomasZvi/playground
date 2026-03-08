@@ -294,6 +294,17 @@ public class PlaygroundIntegrationTest {
         assertThat(getVisitorCount()).isEqualTo(2);
     }
 
+    @Test
+    public void testGetKidNotFound() throws Exception {
+        String nonExistentTicket = "NON_EXISTENT";
+        MvcResult result = mockMvc.perform(get("/kids/" + nonExistentTicket))
+                .andExpect(status().isNotFound())
+                .andReturn();
+
+        ErrorResponse error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
+        assertThat(error.getErrorMessage()).isEqualTo("Kid with ticket number " + nonExistentTicket + " not found");
+    }
+
     private String toJson(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);

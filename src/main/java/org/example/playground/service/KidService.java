@@ -16,7 +16,8 @@ public class KidService {
     private final KidRepository kidRepository;
 
     public Kid getKid(String ticketNumber) {
-        return kidRepository.findById(ticketNumber).orElse(null);
+        return kidRepository.findById(ticketNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Kid with ticket number " + ticketNumber + " not found"));
     }
 
     public Kid createKid(Kid kid) {
