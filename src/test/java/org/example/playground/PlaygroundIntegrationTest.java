@@ -360,6 +360,50 @@ public class PlaygroundIntegrationTest {
         assertThat(error.getErrorMessage()).isEqualTo("PlaySite with id " + nonExistentId + " not found");
     }
 
+    @Test
+    public void testKidCannotBeInTwoPlaces() throws Exception {
+        // 1. Create 2 sites with capacity
+        AttractionConfiguration attraction = AttractionConfiguration.builder()
+                .attractionType(AttractionType.BALL_PIT)
+                .quantity(1)
+                .build();
+        PlaySite site1 = createPlaySite(PlaySite.builder().attractions(Collections.singletonList(attraction)).build());
+        PlaySite site2 = createPlaySite(PlaySite.builder().attractions(Collections.singletonList(attraction)).build());
+
+        // 2. Create a kid
+        Kid kid = Kid.builder().name("Busy Kid").ticketNumber("BUSY1").build();
+        addKid(kid);
+
+        // 3. Add kid to site 1
+        addKidToSite(site1.getId(), "BUSY1");
+
+        // 4. Try adding kid to site 2 - should fail
+        mockMvc.perform(post("/playSites/" + site2.getId() + "/kids/BUSY1"))
+                .andExpect(status().isConflict());
+
+        // 5. Move to queue of site 2 (if they accept waiting)
+        Kid kidWait = Kid.builder().name("Waiting Kid").ticketNumber("waitingKid").acceptWaiting(true).build();
+        addKid(kidWait);
+
+        // Fill site 1
+        // Ball pit has capacity 10.
+        for (int i = 0; i < 9; i++) {
+             addKid(Kid.builder().name("F"+i).ticketNumber("F"+i).build());
+             addKidToSite(site1.getId(), "F"+i);
+        }
+        // Now site 1 has 10 kids (BUSY1 + 9 F kids). It is full.
+
+        // Now add waitingKid to queue of site 1.
+        addKidToSite(site1.getId(), "waitingKid");
+
+        // Verify waitingKid is in queue of site 1
+        assertThat(getPlaySite(site1.getId()).getKidsQueue()).hasSize(1);
+
+        // Try adding waitingKid to site 2 - should fail
+        mockMvc.perform(post("/playSites/" + site2.getId() + "/kids/waitingKid"))
+                .andExpect(status().isConflict());
+    }
+
     private String toJson(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);

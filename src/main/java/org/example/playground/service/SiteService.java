@@ -2,9 +2,11 @@ package org.example.playground.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.playground.event.KidEnteredEvent;
+import org.example.playground.error.exception.KidWaitingException;
 import org.example.playground.error.exception.ResourceNotFoundException;
 import org.example.playground.model.Kid;
 import org.example.playground.model.PlaySite;
+import org.example.playground.persistence.KidRepository;
 import org.example.playground.persistence.PlaySiteRepository;
 import org.example.playground.utils.PlaySiteUtils;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,6 +21,7 @@ import java.util.List;
 public class SiteService {
 
     private final PlaySiteRepository playSiteRepository;
+    private final KidRepository kidRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public PlaySite createDefaultPlaySite() {
@@ -50,18 +53,18 @@ public class SiteService {
     }
 
     public void processQueue(PlaySite site) {
-        int kidsToMove = PlaySiteUtils.totalCapacity(site) - site.getKidsOnSite().size();
-        if (kidsToMove > 0) {
-            moveKidsFromQueToSite(site, kidsToMove);
-        } else if (kidsToMove < 0) {
-            moveKidsFromSiteToQue(site, kidsToMove);
+        int freeSpace = PlaySiteUtils.totalCapacity(site) - site.getKidsOnSite().size();
+        if (freeSpace > 0) {
+            moveKidsFromQueToSite(site, freeSpace);
+        } else if (freeSpace < 0) {
+            moveKidsFromSiteToQue(site, -freeSpace);
         }
     }
 
-    private static void moveKidsFromSiteToQue(PlaySite site, int kidsToMove) {
-        int toRemove = -kidsToMove;
+    private void moveKidsFromSiteToQue(PlaySite site, int kidsToMove) {
+        int actuallyMoving = Math.min(kidsToMove, site.getKidsOnSite().size());
         List<Kid> toQueue = new ArrayList<>();
-        for (int i = 0; i < toRemove; i++) {
+        for (int i = 0; i < actuallyMoving; i++) {
             Kid kid = site.getKidsOnSite().removeFirst();
             if (kid.isAcceptWaiting()) {
                 toQueue.add(kid);
@@ -73,7 +76,8 @@ public class SiteService {
     }
 
     private void moveKidsFromQueToSite(PlaySite site, int kidsToMove) {
-        for (int i = 0; i < kidsToMove; i++) {
+        int actuallyMoving = Math.min(kidsToMove, site.getKidsQueue().size());
+        for (int i = 0; i < actuallyMoving; i++) {
             addKidToSite(site, site.getKidsQueue().removeFirst());
         }
     }
@@ -83,6 +87,47 @@ public class SiteService {
         if (site.getId() != null) {
             eventPublisher.publishEvent(new KidEnteredEvent(kid.getTicketNumber(), site.getId()));
         }
+    }
+
+    @Transactional
+    public void addKidToPlaySite(Long siteId, String ticketNumber) {
+        PlaySite site = getPlaySite(siteId);
+        Kid kid = kidRepository.findById(ticketNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Kid with ticket number " + ticketNumber + " not found"));
+
+        if (isKidAlreadyInAnySite(ticketNumber)) {
+            // If already in THIS site, we can just return (idempotent)
+            if (site.getKidsOnSite().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber)) ||
+                    site.getKidsQueue().stream().anyMatch(k -> k.getTicketNumber().equals(ticketNumber))) {
+                return;
+            }
+            throw new KidWaitingException("Kid is already in another site or queue");
+        }
+
+        if (PlaySiteUtils.hasFreeSpace(site)) {
+            addKidToSite(site, kid);
+        } else if (kid.isAcceptWaiting()) {
+            site.getKidsQueue().add(kid);
+        } else {
+            throw new KidWaitingException("Site is full and kid does not accept waiting");
+        }
+        playSiteRepository.save(site);
+    }
+
+    private boolean isKidAlreadyInAnySite(String ticketNumber) {
+        return playSiteRepository.existsByKidsOnSiteTicketNumber(ticketNumber) ||
+                playSiteRepository.existsByKidsQueueTicketNumber(ticketNumber);
+    }
+
+    @Transactional
+    public void removeKidFromPlaySite(Long siteId, String ticketNumber) {
+        PlaySite site = getPlaySite(siteId);
+        site.getKidsOnSite().removeIf(k -> k.getTicketNumber().equals(ticketNumber));
+        site.getKidsQueue().removeIf(k -> k.getTicketNumber().equals(ticketNumber));
+
+        processQueue(site);
+
+        playSiteRepository.save(site);
     }
 
     public void deletePlaySite(Long id) {

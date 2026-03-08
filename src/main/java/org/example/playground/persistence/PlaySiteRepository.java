@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PlaySiteRepository extends JpaRepository<PlaySite, Long> {
-
+    boolean existsByKidsOnSiteTicketNumber(String ticketNumber);
+    boolean existsByKidsQueueTicketNumber(String ticketNumber);
 }

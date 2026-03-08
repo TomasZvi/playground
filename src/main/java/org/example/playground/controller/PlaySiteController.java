@@ -2,7 +2,6 @@ package org.example.playground.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.playground.model.PlaySite;
-import org.example.playground.service.KidsSiteActionsService;
 import org.example.playground.service.SiteService;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 public class PlaySiteController {
 
     private final SiteService siteService;
-    private final KidsSiteActionsService kidsSiteActionsService;
 
     @PostMapping
     public PlaySite createPlaySite(@RequestBody(required = false) PlaySite playSite) {
@@ -39,12 +37,12 @@ public class PlaySiteController {
 
     @PostMapping("/{siteId}/kids/{ticketNumber}")
     public void addKidToPlaySite(@PathVariable Long siteId, @PathVariable String ticketNumber) {
-        kidsSiteActionsService.addKidToPlaySite(siteId, ticketNumber);
+        siteService.addKidToPlaySite(siteId, ticketNumber);
     }
 
     @DeleteMapping("/{siteId}/kids/{ticketNumber}")
     public void removeKidFromPlaySite(@PathVariable Long siteId, @PathVariable String ticketNumber) {
-        kidsSiteActionsService.removeKidFromPlaySite(siteId, ticketNumber);
+        siteService.removeKidFromPlaySite(siteId, ticketNumber);
     }
 
     @GetMapping("/{id}/utilization")
