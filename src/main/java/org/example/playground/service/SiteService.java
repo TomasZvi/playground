@@ -11,6 +11,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RequiredArgsConstructor
 @Service
 public class SiteService {
@@ -35,15 +38,43 @@ public class SiteService {
     @Transactional
     public PlaySite updatePlaySite(PlaySite playSite) {
         PlaySite existingSite = getPlaySite(playSite.getId());
-        existingSite.setAttractions(playSite.getAttractions());
+
+        if (playSite.getAttractions() == null) {
+            existingSite.getAttractions().clear();
+        } else {
+            existingSite.setAttractions(playSite.getAttractions());
+        }
+
         processQueue(existingSite);
         return playSiteRepository.save(existingSite);
     }
 
     public void processQueue(PlaySite site) {
-        while (!site.getKidsQueue().isEmpty() && PlaySiteUtils.hasFreeSpace(site)) {
-            Kid kidFromQueue = site.getKidsQueue().removeFirst();
-            addKidToSite(site, kidFromQueue);
+        int kidsToMove = PlaySiteUtils.totalCapacity(site) - site.getKidsOnSite().size();
+        if (kidsToMove > 0) {
+            moveKidsFromQueToSite(site, kidsToMove);
+        } else if (kidsToMove < 0) {
+            moveKidsFromSiteToQue(site, kidsToMove);
+        }
+    }
+
+    private static void moveKidsFromSiteToQue(PlaySite site, int kidsToMove) {
+        int toRemove = -kidsToMove;
+        List<Kid> toQueue = new ArrayList<>();
+        for (int i = 0; i < toRemove; i++) {
+            Kid kid = site.getKidsOnSite().removeFirst();
+            if (kid.isAcceptWaiting()) {
+                toQueue.add(kid);
+            }
+        }
+        if (!toQueue.isEmpty()) {
+            site.getKidsQueue().addAll(0, toQueue);
+        }
+    }
+
+    private void moveKidsFromQueToSite(PlaySite site, int kidsToMove) {
+        for (int i = 0; i < kidsToMove; i++) {
+            addKidToSite(site, site.getKidsQueue().removeFirst());
         }
     }
 
@@ -60,7 +91,7 @@ public class SiteService {
 
     public double getUtilization(Long id) {
         PlaySite site = getPlaySite(id);
-        int capacity = PlaySiteUtils.calculateTotalCapacity(site);
+        int capacity = PlaySiteUtils.totalCapacity(site);
         if (capacity == 0) {
             return 0.0;
         }

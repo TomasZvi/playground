@@ -8,7 +8,7 @@ public class PlaySiteUtils {
         // Utility class
     }
 
-    public static int calculateTotalCapacity(PlaySite site) {
+    public static int totalCapacity(PlaySite site) {
         if (site == null || site.getAttractions() == null) {
             return 0;
         }
@@ -17,15 +17,15 @@ public class PlaySiteUtils {
                 .sum();
     }
 
-    public static int calculateFreeSpace(PlaySite site) {
+    public static int freeSpace(PlaySite site) {
         if (site == null) {
             return 0;
         }
         int kidsOnSite = site.getKidsOnSite() != null ? site.getKidsOnSite().size() : 0;
-        return calculateTotalCapacity(site) - kidsOnSite;
+        return totalCapacity(site) - kidsOnSite;
     }
 
     public static boolean hasFreeSpace(PlaySite site) {
-        return calculateFreeSpace(site) > 0;
+        return freeSpace(site) > 0;
     }
 }

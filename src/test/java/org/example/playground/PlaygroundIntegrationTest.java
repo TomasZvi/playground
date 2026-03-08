@@ -222,6 +222,50 @@ public class PlaygroundIntegrationTest {
     }
 
     @Test
+    public void testCapacityDecrease() {
+        // 1. Create a PlaySite with capacity 2
+        AttractionConfiguration attraction = AttractionConfiguration.builder()
+                .attractionType(AttractionType.CAROUSEL) // capacity 1
+                .quantity(2)
+                .build();
+        PlaySite site = PlaySite.builder()
+                .attractions(Collections.singletonList(attraction))
+                .build();
+        PlaySite createdSite = createPlaySite(site);
+
+        // 2. Create 2 kids
+        Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("TK1").acceptWaiting(true).build();
+        Kid kid2 = Kid.builder().name("Kid 2").ticketNumber("TK2").acceptWaiting(false).build();
+        addKid(kid1);
+        addKid(kid2);
+
+        // 3. Add both kids to the site
+        addKidToSite(createdSite.getId(), "TK1");
+        addKidToSite(createdSite.getId(), "TK2");
+
+        // 4. Decrease capacity to 1
+        createdSite.getAttractions().getFirst().setQuantity(1);
+        updatePlaySite(createdSite);
+
+        // 5. Verify: kid1 (accepts waiting) should be in que, kid2 should be gone
+        PlaySite finalSite = getPlaySite(createdSite.getId());
+        assertThat(finalSite.getKidsOnSite()).hasSize(1);
+        assertThat(finalSite.getKidsOnSite().getFirst().getTicketNumber()).isEqualTo("TK2");
+        assertThat(finalSite.getKidsQueue()).hasSize(1);
+        assertThat(finalSite.getKidsQueue().getFirst().getTicketNumber()).isEqualTo("TK1");
+
+        // 6. Decrease capacity to 0
+        finalSite.getAttractions().getFirst().setQuantity(0);
+        updatePlaySite(finalSite);
+
+        // 7. Verify: both kids are gone from site
+        PlaySite emptySite = getPlaySite(createdSite.getId());
+        assertThat(emptySite.getKidsOnSite()).isEmpty();
+        // kid2 does not accept waiting, so he is removed entirely.
+        assertThat(emptySite.getKidsQueue()).hasSize(1); // kid1 still in queue from before
+    }
+
+    @Test
     public void testTicketNumberUniqueness() throws Exception {
         Kid kid1 = Kid.builder().name("Kid 1").ticketNumber("UNIQUE_TICKET").build();
         addKid(kid1);
