@@ -9,6 +9,7 @@ import org.example.playground.persistence.PlaySiteRepository;
 import org.example.playground.utils.PlaySiteUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
@@ -31,9 +32,12 @@ public class SiteService {
                 .orElseThrow(() -> new ResourceNotFoundException("PlaySite with id " + id + " not found"));
     }
 
+    @Transactional
     public PlaySite updatePlaySite(PlaySite playSite) {
-        processQueue(playSite);
-        return playSiteRepository.save(playSite);
+        PlaySite existingSite = getPlaySite(playSite.getId());
+        existingSite.setAttractions(playSite.getAttractions());
+        processQueue(existingSite);
+        return playSiteRepository.save(existingSite);
     }
 
     public void processQueue(PlaySite site) {
