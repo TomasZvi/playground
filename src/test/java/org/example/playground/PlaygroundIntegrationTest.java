@@ -305,6 +305,17 @@ public class PlaygroundIntegrationTest {
         assertThat(error.getErrorMessage()).isEqualTo("Kid with ticket number " + nonExistentTicket + " not found");
     }
 
+    @Test
+    public void testGetPlaySiteNotFound() throws Exception {
+        Long nonExistentId = 999L;
+        MvcResult result = mockMvc.perform(get("/playSites/" + nonExistentId))
+                .andExpect(status().isNotFound())
+                .andReturn();
+
+        ErrorResponse error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
+        assertThat(error.getErrorMessage()).isEqualTo("PlaySite with id " + nonExistentId + " not found");
+    }
+
     private String toJson(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);

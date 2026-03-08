@@ -27,7 +27,8 @@ public class SiteService {
     }
 
     public PlaySite getPlaySite(Long id) {
-        return playSiteRepository.findById(id).orElse(null);
+        return playSiteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PlaySite with id " + id + " not found"));
     }
 
     public PlaySite updatePlaySite(PlaySite playSite) {
@@ -55,9 +56,6 @@ public class SiteService {
 
     public double getUtilization(Long id) {
         PlaySite site = getPlaySite(id);
-        if (site == null) {
-            throw new ResourceNotFoundException("PlaySite not found");
-        }
         int capacity = PlaySiteUtils.calculateTotalCapacity(site);
         if (capacity == 0) {
             return 0.0;
